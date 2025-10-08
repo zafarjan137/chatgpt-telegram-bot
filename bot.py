@@ -1,85 +1,45 @@
 import os
+import logging
+from aiogram import Bot, Dispatcher, types
+from aiogram.utils import executor
+import google.generativeai as genai
 
-print("DEBUG ENVIRONMENT:")
-for k, v in os.environ.items():
-    if "BOT" in k or "TOKEN" in k:
-        print(k, "=", v)
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters
-from openai import OpenAI
+# Logging
+logging.basicConfig(level=logging.INFO)
 
-# --- TOKENLARNI ENVIRONMENTS'DAN O‘QISH ---
-bot_token = os.getenv("BOT_TOKEN")
-openai_api_key = os.getenv("OPENAI_API_KEY")
+# 🔑 Muhit o'zgaruvchilari (Railway yoki local)
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
-print("BOT_TOKEN:", bot_token)
-print("OPENAI_API_KEY:", openai_api_key)
+if not BOT_TOKEN:
+    raise ValueError("❌ BOT_TOKEN topilmadi! Railway Variables-ga qo‘shing.")
+if not GEMINI_API_KEY:
+    raise ValueError("❌ GEMINI_API_KEY topilmadi! https://aistudio.google.com/app/apikey dan oling.")
 
-# --- TEKSHIRISH ---
-if not bot_token:
-    raise ValueError("❌ BOT_TOKEN environment variable topilmadi!")
-if not openai_api_key:
-    raise ValueError("❌ OPENAI_API_KEY environment variable topilmadi!")
+# Telegram bot
+bot = Bot(token=BOT_TOKEN)
+dp = Dispatcher(bot)
 
-# --- OPENAI CLIENT ---
-client = OpenAI(api_key=openai_api_key)
+# Gemini sozlash
+genai.configure(api_key=GEMINI_API_KEY)
+model = genai.GenerativeModel("gemini-1.5-flash")
 
-ADMIN_ID = 6079100324
-user_memory = {}
+@dp.message_handler(commands=['start'])
+async def start(message: types.Message):
+    await message.reply("👋 Salom! Men Gemini (Google AI) asosida ishlayman. Savolingizni yozing!")
 
-# --- START komandasi ---
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    keyboard = [
-        [InlineKeyboardButton("💬 Yordam", callback_data="help")],
-        [InlineKeyboardButton("🔁 Qayta boshlash", callback_data="restart")],
-        [InlineKeyboardButton("👤 Haqimda", callback_data="about")]
-    ]
-    await update.message.reply_text(
-        "👋 Salom! Men ChatGPT asosidagi AI botman.\nSavolingizni yozing!",
-        reply_markup=InlineKeyboardMarkup(keyboard)
-    )
-
-# --- CALLBACK BUTTON ---
-async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-    if query.data == "help":
-        await query.edit_message_text("ℹ️ Men sizga yordam bera olaman!")
-    elif query.data == "restart":
-        user_memory.clear()
-        await query.edit_message_text("🔁 Yangi suhbat boshlandi!")
-    elif query.data == "about":
-        await query.edit_message_text("🤖 GPT asosidagi AI bot.")
-
-# --- CHAT ---
-async def chat(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.message.from_user.id
-    text = update.message.text
-    if user_id not in user_memory:
-        user_memory[user_id] = []
-
-    user_memory[user_id].append({"role": "user", "content": text})
-
+@dp.message_handler()
+async def chat(message: types.Message):
     try:
-        response = client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=user_memory[user_id]
-        )
-        reply = response.choices[0].message.content
-        user_memory[user_id].append({"role": "assistant", "content": reply})
-        await update.message.reply_text(reply)
+        prompt = message.text
+        response = model.generate_content(prompt)
+        await message.reply(response.text)
     except Exception as e:
-        await update.message.reply_text(f"⚠️ Xato: {e}")
+        await message.reply(f"⚠️ Xato: {e}")
 
-# --- BOTNI ISHGA TUSHURISH ---
-if __name__ == "__main__":
-    print("🤖 Bot ishga tushmoqda...")
-    app = ApplicationBuilder().token(bot_token).build()
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, chat))
-    from telegram.ext import CallbackQueryHandler
-    app.add_handler(CallbackQueryHandler(button_callback))
-    app.run_polling()
+if __name__ == '__main__':
+    executor.start_polling(dp, skip_updates=True)
+
 
 
 
