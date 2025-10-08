@@ -5,7 +5,7 @@ from openai import OpenAI
 
 # OpenAI va Telegram sozlamalari
 openai_api_key = ("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")
-bot_token = ("8369521872:AAFMiPtuWJyIQ55PUjgPd33yz87r7r2e3PA")
+bot_token = ("8369521872:AAEmiiYUx1BwHyB3Wmm1sK2iUJ4vtYXWHoY")
 
 client = OpenAI(api_key=openai_api_key)
 ADMIN_ID = 6079100324  # 👈 faqat sen
@@ -86,6 +86,7 @@ if __name__ == "__main__":
 
     print("🤖 Bot ishga tushdi...")
     app.run_polling()
+
 
 
 
