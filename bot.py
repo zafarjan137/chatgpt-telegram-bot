@@ -5,7 +5,7 @@ from openai import OpenAI
 
 # OpenAI va Telegram sozlamalari
 openai_api_key = ("OPENAI_API_KEY")
-bot_token = ("TELEGRAM_BOT_TOKEN")
+bot_token = ("BOT_TOKEN")
 
 client = OpenAI(api_key=openai_api_key)
 ADMIN_ID = 6079100324  # 👈 faqat sen
@@ -86,6 +86,7 @@ if __name__ == "__main__":
 
     print("🤖 Bot ishga tushdi...")
     app.run_polling()
+
 
 
 
