@@ -1,4 +1,9 @@
 import os
+
+print("DEBUG ENVIRONMENT:")
+for k, v in os.environ.items():
+    if "BOT" in k or "TOKEN" in k:
+        print(k, "=", v)
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters
 from openai import OpenAI
@@ -75,6 +80,7 @@ if __name__ == "__main__":
     from telegram.ext import CallbackQueryHandler
     app.add_handler(CallbackQueryHandler(button_callback))
     app.run_polling()
+
 
 
 
