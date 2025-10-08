@@ -1,67 +1,55 @@
+import os
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters
-import os
 from openai import OpenAI
 
-# 🔹 Railway environmentdan tokenlarni olish
+# --- TOKENLARNI ENVIRONMENTS'DAN O‘QISH ---
 bot_token = os.getenv("BOT_TOKEN")
 openai_api_key = os.getenv("OPENAI_API_KEY")
 
-# 🔹 Tekshirish uchun (faqat vaqtincha)
 print("BOT_TOKEN:", bot_token)
 print("OPENAI_API_KEY:", openai_api_key)
 
-client = OpenAI(api_key=openai_api_key)
-ADMIN_ID = 6079100324  # 👈 faqat sen
+# --- TEKSHIRISH ---
+if not bot_token:
+    raise ValueError("❌ BOT_TOKEN environment variable topilmadi!")
+if not openai_api_key:
+    raise ValueError("❌ OPENAI_API_KEY environment variable topilmadi!")
 
-# Foydalanuvchi xotirasi
+# --- OPENAI CLIENT ---
+client = OpenAI(api_key=openai_api_key)
+
+ADMIN_ID = 6079100324
 user_memory = {}
 
-# /start komandasi
+# --- START komandasi ---
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         [InlineKeyboardButton("💬 Yordam", callback_data="help")],
         [InlineKeyboardButton("🔁 Qayta boshlash", callback_data="restart")],
         [InlineKeyboardButton("👤 Haqimda", callback_data="about")]
     ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text(
-        "👋 Salom! Men ChatGPT asosidagi AI botman.\n\nSavolingizni yozing, men javob beraman!",
-        reply_markup=reply_markup
+        "👋 Salom! Men ChatGPT asosidagi AI botman.\nSavolingizni yozing!",
+        reply_markup=InlineKeyboardMarkup(keyboard)
     )
 
-# Tugmalar funksiyasi
+# --- CALLBACK BUTTON ---
 async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-
     if query.data == "help":
-        await query.edit_message_text("ℹ️ Faqat yozing – men sizga javob qaytaraman.\nOvoz, matn va so‘rovlarni tushunaman.")
+        await query.edit_message_text("ℹ️ Men sizga yordam bera olaman!")
     elif query.data == "restart":
         user_memory.clear()
-        await query.edit_message_text("🔁 Xotira tozalandi! Yangi suhbatni boshlang.")
+        await query.edit_message_text("🔁 Yangi suhbat boshlandi!")
     elif query.data == "about":
-        await query.edit_message_text("🤖 GPT asosidagi AI bot (versiya 2.5)\nYaratuvchi: Admin 👨‍💻")
+        await query.edit_message_text("🤖 GPT asosidagi AI bot.")
 
-# Chat funksiyasi (matn)
+# --- CHAT ---
 async def chat(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.message.from_user.id
     text = update.message.text
-
-    # Faqat admin uchun maxsus buyruqlar
-    if user_id == ADMIN_ID and text.startswith("/"):
-        if text == "/status":
-            await update.message.reply_text("🟢 Bot ishlayapti!")
-            return
-        elif text == "/users":
-            await update.message.reply_text(f"👥 Xotirada {len(user_memory)} ta foydalanuvchi bor.")
-            return
-        elif text == "/clear":
-            user_memory.clear()
-            await update.message.reply_text("🧹 Xotira tozalandi.")
-            return
-
-    # Oddiy foydalanuvchilar uchun
     if user_id not in user_memory:
         user_memory[user_id] = []
 
@@ -74,25 +62,19 @@ async def chat(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         reply = response.choices[0].message.content
         user_memory[user_id].append({"role": "assistant", "content": reply})
-        await update.message.reply_text(f"💡 {reply}")
+        await update.message.reply_text(reply)
     except Exception as e:
-        await update.message.reply_text(f"⚠️ Xato yuz berdi: {str(e)}")
+        await update.message.reply_text(f"⚠️ Xato: {e}")
 
-# Botni ishga tushurish
+# --- BOTNI ISHGA TUSHURISH ---
 if __name__ == "__main__":
+    print("🤖 Bot ishga tushmoqda...")
     app = ApplicationBuilder().token(bot_token).build()
-
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, chat))
-    app.add_handler(MessageHandler(filters.COMMAND, chat))
     from telegram.ext import CallbackQueryHandler
     app.add_handler(CallbackQueryHandler(button_callback))
-
-    print("🤖 Bot ishga tushdi...")
     app.run_polling()
-
-
-
 
 
 
