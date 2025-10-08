@@ -3,9 +3,13 @@ from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, Con
 import os
 from openai import OpenAI
 
-# OpenAI va Telegram sozlamalari
-openai_api_key = ("OPENAI_API_KEY")
-bot_token = ("BOT_TOKEN")
+# 🔹 Railway environmentdan tokenlarni olish
+bot_token = os.getenv("BOT_TOKEN")
+openai_api_key = os.getenv("OPENAI_API_KEY")
+
+# 🔹 Tekshirish uchun (faqat vaqtincha)
+print("BOT_TOKEN:", bot_token)
+print("OPENAI_API_KEY:", openai_api_key)
 
 client = OpenAI(api_key=openai_api_key)
 ADMIN_ID = 6079100324  # 👈 faqat sen
@@ -86,6 +90,7 @@ if __name__ == "__main__":
 
     print("🤖 Bot ishga tushdi...")
     app.run_polling()
+
 
 
 
